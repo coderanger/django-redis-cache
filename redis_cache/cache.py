@@ -36,12 +36,13 @@ class CacheClass(BaseCache):
             host = server or 'localhost'
             port = 6379
         self._cache = redis.Redis(host=host, port=port, db=db, password=password)
+        self._prefix = smart_str(params.get('prefix') or '')
 
     def prepare_key(self, key):
         """
         Returns the utf-8 encoded bytestring of the given key.
         """
-        return smart_str(key)
+        return self._prefix + smart_str(key)
 
     def add(self, key, value, timeout=None):
         """
@@ -49,8 +50,7 @@ class CacheClass(BaseCache):
 
         Returns ``True`` if the object was added, ``False`` if not.
         """
-        key = self.prepare_key(key)
-        if self._cache.exists(key):
+        if self._cache.exists(self.prepare_key(key)):
             return False
         return self.set(key, value, timeout)
 
@@ -114,14 +114,14 @@ class CacheClass(BaseCache):
         """
         Flush all cache keys.
         """
-        self._cache.flushdb()
+        self._cache.delete(*self._cache.keys(self._prefix + '*'))
 
     def get_many(self, keys):
         """
         Retrieve many keys.
         """
         recovered_data = SortedDict()
-        results = self._cache.mget(map(lambda k: self.prepare_key(k), keys))
+        results = self._cache.mget(map(self.prepare_key, keys))
         for key, value in zip(keys, results):
             if value is None:
                 continue
