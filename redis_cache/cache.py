@@ -20,11 +20,11 @@ class CacheClass(BaseCache):
         Connect to Redis, and set up cache backend.
         """
         BaseCache.__init__(self, params)
-        db = params.get('db', 1)
+        db = params.get('db', 0)
         try:
             db = int(db)
         except (ValueError, TypeError):
-            db = 1
+            db = 0
         password = params.get('password', None)
         if ':' in server:
             host, port = server.split(':')
